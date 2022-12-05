@@ -7,6 +7,8 @@ from keras import Sequential
 from keras.layers import Dense
 from sklearn.metrics import accuracy_score
 from keras.callbacks import EarlyStopping
+# from keras.regularizers import l1
+from keras.regularizers import l2
 
 pod = pd.read_csv('podaciCas04.csv', header=None)
 # baza nema imena kolona pa ih dodajemo
@@ -38,10 +40,9 @@ ulaz_ob, ulaz_val, izlaz_ob, izlaz_val = train_test_split(ulaz_trening,
                                                           test_size=0.2,
                                                           random_state=25)
 
-es = EarlyStopping(monitor='val_loss', patience=10)
-
 model = Sequential()
-model.add(Dense(200, activation='relu', input_dim=ulaz.shape[1]))
+model.add(Dense(200, activation='relu',
+                kernel_regularizer=l2(0.1), input_dim=ulaz.shape[1]))
 model.add(Dense(100, activation='relu'))
 model.add(Dense(50, activation='relu'))
 model.add(Dense(izlaz_cat.shape[1], activation='softmax'))
@@ -52,15 +53,12 @@ history = model.fit(ulaz_ob, izlaz_ob,
                     epochs=1000,
                     batch_size=64,
                     validation_data=(ulaz_val, izlaz_val),
-                    callbacks=[es],
                     verbose=0)
 
 plt.figure()
 plt.plot(history.history['loss'])
 plt.plot(history.history['val_loss'])
 plt.show()
-
-# kriterijumska fja ima opadajuci trend
 
 pred_trening_cat = model.predict(ulaz_trening)
 pred_trening = np.argmax(pred_trening_cat, axis=1)
@@ -94,32 +92,3 @@ plt.plot(K0pred[:, 0], K0pred[:, 1], '.')
 plt.plot(K1pred[:, 0], K1pred[:, 1], '.')
 plt.plot(K2pred[:, 0], K2pred[:, 1], '.')
 plt.show()
-
-# novi model
-
-best_epoch = len(history.epoch) - 100
-
-model = Sequential()
-model.add(Dense(200, activation='relu', input_dim=ulaz.shape[1]))
-model.add(Dense(100, activation='relu'))
-model.add(Dense(50, activation='relu'))
-model.add(Dense(izlaz_cat.shape[1], activation='softmax'))
-
-model.compile('adam', loss='categorical_crossentropy')
-
-history = model.fit(ulaz_trening, izlaz_trening,
-                    epochs=best_epoch,
-                    batch_size=64,
-                    verbose=0)
-
-# kriterijumska fja ima opadajuci trend
-
-pred_trening_cat = model.predict(ulaz_trening)
-pred_trening = np.argmax(pred_trening_cat, axis=1)
-izlaz_trening_klase = np.argmax(izlaz_trening, axis=1)
-print(accuracy_score(izlaz_trening_klase, pred_trening))
-
-pred_test_cat = model.predict(ulaz_test)
-pred_test = np.argmax(pred_test_cat, axis=1)
-izlaz_test_klase = np.argmax(izlaz_test, axis=1)
-print(accuracy_score(izlaz_test_klase, pred_test))
