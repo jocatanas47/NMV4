@@ -17,10 +17,8 @@ from keras.layers import Dense
 from sklearn.model_selection import KFold
 
 data = datasets.load_breast_cancer()
-
 ulaz = data.data
 izlaz = data.target
-
 ulaz_trening, ulaz_test, izlaz_trening, izlaz_test = train_test_split(ulaz,
                                                                       izlaz,
                                                                       test_size=0.2,
@@ -44,6 +42,7 @@ def make_model(n_in, n_out):
 
 kf = KFold(n_splits=5, shuffle=True, random_state=12)
 A_svi = []
+A_max = 0
 for trening, val in kf.split(ulaz_trening_norm, izlaz_trening):
     model = make_model(ulaz_trening_norm.shape[1], 1)
     history = model.fit(ulaz_trening_norm[trening, :], izlaz_trening[trening],
@@ -53,5 +52,10 @@ for trening, val in kf.split(ulaz_trening_norm, izlaz_trening):
     A = model.evaluate(ulaz_trening_norm[val, :], izlaz_trening[val])[1]
     print(A)
     A_svi.append(A)
+    if A > A_max:
+        best_model = model
+        A_max = A
+
 print("---------------------------------")
 print(np.mean(A_svi))
+print(best_model.evaluate(ulaz_test_norm, izlaz_test)[1])
